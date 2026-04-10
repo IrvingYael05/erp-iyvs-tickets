@@ -93,7 +93,7 @@ export const getMyTickets = async (
   try {
     const userId = request.user!.id;
 
-    const { data, error } = await supabase
+    const { data, error, count } = await supabase
       .from("tickets")
       .select(
         `
@@ -102,6 +102,7 @@ export const getMyTickets = async (
         autor:usuarios!tickets_autor_id_fkey(email, nombre_completo),
         asignado:usuarios!tickets_asignado_id_fkey(email, nombre_completo)
       `,
+        { count: "exact" },
       )
       .eq("asignado_id", userId)
       .order("fecha_limite", { ascending: true });
@@ -123,7 +124,7 @@ export const getMyTickets = async (
 
     return reply
       .status(200)
-      .send({ statusCode: 200, intOpCode: 0, data: mappedTickets });
+      .send({ statusCode: 200, intOpCode: 0, data: [{tickets: mappedTickets, totalRecords: count || 0}] });
   } catch (err) {
     request.log.error(err);
     return reply.status(500).send({
