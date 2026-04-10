@@ -488,6 +488,18 @@ export const updateTicket = async (
             {
               message:
                 "Como responsable del ticket, solo puedes cambiar la prioridad y el estado.",
+              payload: {
+                titulo,
+                descripcion,
+                asignadoA,
+                fechaLimite,
+              },
+              bd: {
+                titulo: ticketActual.titulo,
+                descripcion: ticketActual.descripcion,
+                asignadoA: ticketActual.asignado?.email || "",
+                fechaLimite: ticketActual.fecha_limite,
+              },
             },
           ],
         });
