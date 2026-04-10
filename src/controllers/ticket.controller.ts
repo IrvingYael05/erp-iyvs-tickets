@@ -474,12 +474,17 @@ export const updateTicket = async (
     }
 
     if (!hasEditPerm && isAssigned) {
+      const msPayload = fechaLimite ? new Date(fechaLimite).getTime() : null;
+      const msBD = ticketActual.fecha_limite
+        ? new Date(ticketActual.fecha_limite).getTime()
+        : null;
+
       if (
         (titulo && titulo !== ticketActual.titulo) ||
         (descripcion && descripcion !== ticketActual.descripcion) ||
         (asignadoA !== undefined &&
           asignadoA !== (ticketActual.asignado?.email || "")) ||
-        (fechaLimite !== undefined && fechaLimite !== ticketActual.fecha_limite)
+        msPayload !== msBD
       ) {
         return reply.status(403).send({
           statusCode: 403,
@@ -487,19 +492,7 @@ export const updateTicket = async (
           data: [
             {
               message:
-                "Como responsable del ticket, solo puedes cambiar la prioridad y el estado.",
-              payload: {
-                titulo,
-                descripcion,
-                asignadoA,
-                fechaLimite,
-              },
-              bd: {
-                titulo: ticketActual.titulo,
-                descripcion: ticketActual.descripcion,
-                asignadoA: ticketActual.asignado?.email || "",
-                fechaLimite: ticketActual.fecha_limite,
-              },
+                "Como responsable, solo puedes cambiar la prioridad y el estado del ticket.",
             },
           ],
         });

@@ -84,7 +84,7 @@ export default async function ticketRoutes(fastify: FastifyInstance) {
   fastify.post<{ Params: { id: string } }>(
     "/:id/comments",
     {
-      preHandler: [requireLocalPermission(["ticket:edit"])],
+      preHandler: [requireLocalPermission(["ticket:edit", "ticket:view"])],
     },
     addTicketComment,
   );
