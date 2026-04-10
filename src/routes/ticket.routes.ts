@@ -60,7 +60,7 @@ export default async function ticketRoutes(fastify: FastifyInstance) {
   fastify.put<{ Params: { id: string } }>(
     "/:id",
     {
-      preHandler: [requireLocalPermission(["ticket:edit"])],
+      preHandler: [requireLocalPermission(["ticket:edit", "ticket:view"])],
     },
     updateTicket,
   );
@@ -76,7 +76,7 @@ export default async function ticketRoutes(fastify: FastifyInstance) {
   fastify.patch<{ Params: { id: string } }>(
     "/:id/status",
     {
-      preHandler: [requireLocalPermission(["ticket:edit"])],
+      preHandler: [requireLocalPermission(["ticket:edit", "ticket:view"])],
     },
     patchTicketStatus,
   );

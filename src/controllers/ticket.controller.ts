@@ -68,13 +68,11 @@ export const getGroupTickets = async (
       grupoId: t.grupo_id,
     }));
 
-    return reply
-      .status(200)
-      .send({
-        statusCode: 200,
-        intOpCode: 0,
-        data: [{ tickets: mappedTickets, totalRecords: count || 0 }],
-      });
+    return reply.status(200).send({
+      statusCode: 200,
+      intOpCode: 0,
+      data: [{ tickets: mappedTickets, totalRecords: count || 0 }],
+    });
   } catch (err) {
     request.log.error(err);
     return reply.status(500).send({
@@ -122,9 +120,11 @@ export const getMyTickets = async (
       grupoNombre: t.grupos?.nombre,
     }));
 
-    return reply
-      .status(200)
-      .send({ statusCode: 200, intOpCode: 0, data: [{tickets: mappedTickets, totalRecords: count || 0}] });
+    return reply.status(200).send({
+      statusCode: 200,
+      intOpCode: 0,
+      data: [{ tickets: mappedTickets, totalRecords: count || 0 }],
+    });
   } catch (err) {
     request.log.error(err);
     return reply.status(500).send({
@@ -455,6 +455,45 @@ export const updateTicket = async (
         data: [{ message: "Ticket no encontrado." }],
       });
 
+    const { data: memberData } = await supabase
+      .from("grupo_miembros")
+      .select("permisos_locales")
+      .eq("grupo_id", ticketActual.grupo_id)
+      .eq("usuario_id", userId)
+      .single();
+
+    const hasEditPerm = memberData?.permisos_locales?.includes("ticket:edit");
+    const isAssigned = ticketActual.asignado_id === userId;
+
+    if (!hasEditPerm && !isAssigned) {
+      return reply.status(403).send({
+        statusCode: 403,
+        intOpCode: 1,
+        data: [{ message: "No tienes permisos para editar este ticket." }],
+      });
+    }
+
+    if (!hasEditPerm && isAssigned) {
+      if (
+        (titulo && titulo !== ticketActual.titulo) ||
+        (descripcion && descripcion !== ticketActual.descripcion) ||
+        (asignadoA !== undefined &&
+          asignadoA !== (ticketActual.asignado?.email || "")) ||
+        (fechaLimite !== undefined && fechaLimite !== ticketActual.fecha_limite)
+      ) {
+        return reply.status(403).send({
+          statusCode: 403,
+          intOpCode: 1,
+          data: [
+            {
+              message:
+                "Como responsable del ticket, solo puedes cambiar la prioridad y el estado.",
+            },
+          ],
+        });
+      }
+    }
+
     let nuevoAsignadoId = ticketActual.asignado_id;
     let emailAsignadoAnterior = ticketActual.asignado?.email || "";
 
@@ -601,7 +640,7 @@ export const patchTicketStatus = async (
 
     const { data: ticketActual, error: fetchError } = await supabase
       .from("tickets")
-      .select("estado")
+      .select("estado, grupo_id, asignado_id")
       .eq("id", ticketId)
       .single();
     if (fetchError || !ticketActual)
@@ -610,6 +649,24 @@ export const patchTicketStatus = async (
         intOpCode: 1,
         data: [{ message: "Ticket no encontrado." }],
       });
+
+    const { data: memberData } = await supabase
+      .from("grupo_miembros")
+      .select("permisos_locales")
+      .eq("grupo_id", ticketActual.grupo_id)
+      .eq("usuario_id", userId)
+      .single();
+
+    const hasEditPerm = memberData?.permisos_locales?.includes("ticket:edit");
+    const isAssigned = ticketActual.asignado_id === userId;
+
+    if (!hasEditPerm && !isAssigned) {
+      return reply.status(403).send({
+        statusCode: 403,
+        intOpCode: 1,
+        data: [{ message: "No tienes permisos para mover este ticket." }],
+      });
+    }
 
     if (ticketActual.estado === estado) {
       return reply.status(200).send({
