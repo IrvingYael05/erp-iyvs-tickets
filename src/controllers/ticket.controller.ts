@@ -39,6 +39,7 @@ export const getGroupTickets = async (
         autor:usuarios!tickets_autor_id_fkey(email, nombre_completo),
         asignado:usuarios!tickets_asignado_id_fkey(email, nombre_completo)
       `,
+        { count: "exact" },
       )
       .eq("grupo_id", groupId)
       .order("creado_en", { ascending: false });
@@ -51,7 +52,7 @@ export const getGroupTickets = async (
       query = query.eq("prioridad", "Alta");
     }
 
-    const { data, error } = await query;
+    const { data, error, count } = await query;
 
     if (error) throw error;
 
@@ -69,7 +70,11 @@ export const getGroupTickets = async (
 
     return reply
       .status(200)
-      .send({ statusCode: 200, intOpCode: 0, data: mappedTickets });
+      .send({
+        statusCode: 200,
+        intOpCode: 0,
+        data: [{ tickets: mappedTickets, totalRecords: count || 0 }],
+      });
   } catch (err) {
     request.log.error(err);
     return reply.status(500).send({
@@ -573,28 +578,24 @@ export const patchTicketStatus = async (
     const { estado } = request.body as any;
 
     if (!estado) {
-      return reply
-        .status(400)
-        .send({
-          statusCode: 400,
-          intOpCode: 1,
-          data: [{ message: "El estado es requerido." }],
-        });
+      return reply.status(400).send({
+        statusCode: 400,
+        intOpCode: 1,
+        data: [{ message: "El estado es requerido." }],
+      });
     }
 
     // Validación Estricta
     if (!ESTADOS_PERMITIDOS.includes(estado)) {
-      return reply
-        .status(400)
-        .send({
-          statusCode: 400,
-          intOpCode: 1,
-          data: [
-            {
-              message: `El estado debe ser uno de: ${ESTADOS_PERMITIDOS.join(", ")}`,
-            },
-          ],
-        });
+      return reply.status(400).send({
+        statusCode: 400,
+        intOpCode: 1,
+        data: [
+          {
+            message: `El estado debe ser uno de: ${ESTADOS_PERMITIDOS.join(", ")}`,
+          },
+        ],
+      });
     }
 
     const { data: ticketActual, error: fetchError } = await supabase
@@ -603,22 +604,18 @@ export const patchTicketStatus = async (
       .eq("id", ticketId)
       .single();
     if (fetchError || !ticketActual)
-      return reply
-        .status(404)
-        .send({
-          statusCode: 404,
-          intOpCode: 1,
-          data: [{ message: "Ticket no encontrado." }],
-        });
+      return reply.status(404).send({
+        statusCode: 404,
+        intOpCode: 1,
+        data: [{ message: "Ticket no encontrado." }],
+      });
 
     if (ticketActual.estado === estado) {
-      return reply
-        .status(200)
-        .send({
-          statusCode: 200,
-          intOpCode: 0,
-          data: [{ message: "El ticket ya tiene ese estado." }],
-        });
+      return reply.status(200).send({
+        statusCode: 200,
+        intOpCode: 0,
+        data: [{ message: "El ticket ya tiene ese estado." }],
+      });
     }
 
     const { error: updateError } = await supabase
@@ -640,22 +637,18 @@ export const patchTicketStatus = async (
       descripcion: `${nombreAutor} movió el ticket a '${estado}'.`,
     });
 
-    return reply
-      .status(200)
-      .send({
-        statusCode: 200,
-        intOpCode: 0,
-        data: [{ message: `Estado actualizado a ${estado}.` }],
-      });
+    return reply.status(200).send({
+      statusCode: 200,
+      intOpCode: 0,
+      data: [{ message: `Estado actualizado a ${estado}.` }],
+    });
   } catch (err) {
     request.log.error(err);
-    return reply
-      .status(500)
-      .send({
-        statusCode: 500,
-        intOpCode: 99,
-        data: [{ message: "Error interno al cambiar el estado." }],
-      });
+    return reply.status(500).send({
+      statusCode: 500,
+      intOpCode: 99,
+      data: [{ message: "Error interno al cambiar el estado." }],
+    });
   }
 };
 
